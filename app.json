@@ -21,10 +21,20 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.saaxx.backgammoncounter"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8ebcbf1a-9c0e-43fc-8af2-184c23aa07c5"
+      }
+    },
+    "owner": "saaxx",
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
