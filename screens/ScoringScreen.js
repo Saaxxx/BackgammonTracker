@@ -1,5 +1,5 @@
 import * as React from "react";
-import {View, Text, Button, StyleSheet, TouchableHighlight} from "react-native";
+import {View, Text, Button, StyleSheet, TouchableHighlight, SafeAreaView, FlatList} from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import { useState, useEffect } from "react";
 import * as SQLite from "expo-sqlite";
@@ -22,6 +22,7 @@ export default function ScoringScreen({navigation, route}) {
     const [completed, changeCompleted] = useState(
         typeof route.params.item.Completed === "string" ? JSON.parse(route.params.item.Completed) : route.params.item.Completed
     );
+    const [showFooter, setShowFooter] = useState(true)
 
     const [name1, changeName1] = useState(route.params.item.Name1);
     const [name2, changeName2] = useState(route.params.item.Name2);
@@ -84,7 +85,6 @@ export default function ScoringScreen({navigation, route}) {
         })
     }
 
-
     
     function addValue(val) {
         if (selectedValues.length === 2) {
@@ -123,7 +123,7 @@ export default function ScoringScreen({navigation, route}) {
             return;
         }
         
-        if (selectedValues[0] > selectedValues[1]) {
+        if (selectedValues[0] < selectedValues[1]) {
             temp = selectedValues[0];
             selectedValues[0] = selectedValues[1];
             selectedValues[1] = temp;
@@ -141,26 +141,7 @@ export default function ScoringScreen({navigation, route}) {
     function setCompleted() {
         changeData("Completed", !completed);
         changeCompleted(!completed);
-    }
-    
-    function getMoves(player) {
-        if ((moves.length === 0 && player === 1) || (moves.length < 3 && player === 2)) {
-            return "No moves";
-        }
-        
-        let i = 0;
-        if (player === 2) {
-            i = 2;
-        }
-        
-        let str = "[ " + moves[i+1] + "," + moves[i];
-        
-        i+=4;
-        for (; i < moves.length; i+=4) {
-            str = str + " : " + moves[i+1] + "," + moves[i];
-        }
-        
-        return str + " ]";
+        changeData("Winner", completed ? name1 : "");
     }
 
     if (loading) {
@@ -168,10 +149,50 @@ export default function ScoringScreen({navigation, route}) {
             <View style={{alignItems: "center", justifyContent: "space-evenly"}}><Text>Loading...</Text></View>
         )
     }
+
+    // function getMovesForFlatList(name) {
+    //     let start = 0;
+    //     if (name === "name2") {
+    //         start = 2;
+    //     }
+    //     const list_moves = [];
+    //     for (let i = start; i < moves.length; i+=4) {
+    //         list_moves.push([moves[i],moves[i+1]]);
+    //     }
+
+    //     if (start === 2 && (moves.length / 2) % 2 == 1) {
+    //         list_moves.push(["N/A", "N/A"])
+    //     }
+
+    //     return list_moves.reverse();
+    // }
+
+    function getMovesForFlatList() {
+
+        const list_moves = [];
+        for (let i = 0; i < moves.length; i+=2) {
+            if ((i/2) % 2 === 0) {
+                list_moves.push([moves[i],moves[i+1]]);
+            } else {
+                list_moves[list_moves.length-1].push(moves[i],moves[i+1]);
+            }
+        }
+
+        if ((moves.length / 2) % 2 == 1) {
+            list_moves[list_moves.length-1].push("N/A", "N/A")
+        }
+
+        return list_moves.reverse();
+    }
     
     return (
         
-        <View style={styles.container}>
+        <View style={{width: "100%",
+                    height: "100%",
+                    justifyContent:"space-between",
+                    padding:20,
+                    gap:5,
+                    backgroundColor: moves.length%4<2 ? "white":"cyan",}}>
 
             <View style={styles.mainView}>
 
@@ -179,7 +200,7 @@ export default function ScoringScreen({navigation, route}) {
                     {name1} vs {name2}
                 </Text>
 
-                <Text>{name1}: {totalMoves[0]}, {name2}: {totalMoves[1]}</Text>
+                <Text style={{fontSize:20}}>{name1}: {totalMoves[0]}, {name2}: {totalMoves[1]}</Text>
 
                 {editing &&
                 <View style={styles.textInContainer}>
@@ -190,13 +211,21 @@ export default function ScoringScreen({navigation, route}) {
                         placeholder={"White"} 
                         value = {newName1}
                         onChange={(event) => {
+                            setShowFooter(false)
                             changeNewName1(event.nativeEvent.text);
                         }}
                         onSubmitEditing={(event) => {
+                            setShowFooter(true)
                             if (event.nativeEvent.text === "") {
                                 return;
                             }
-                            item.Name1 = event.nativeEvent.text;
+
+                            if (event.nativeEvent.text.length > 10) {
+                                item.Name1 = event.nativeEvent.text.slice(0,10);
+                            } else {
+                                item.Name1 = event.nativeEvent.text;
+                            }
+
                             changeName1(item.Name1);
                             changeNewName1("");
                             changeData("Name1", item.Name1);
@@ -207,14 +236,23 @@ export default function ScoringScreen({navigation, route}) {
                         style={styles.textIn} 
                         placeholder={"Black"}
                         value = {newName2}
+                        onPress={()=>{
+                            setShowFooter(false);
+                        }}
                         onChange={(event) => {
                             changeNewName2(event.nativeEvent.text);
+                            setShowFooter(false);
                         }}
                         onSubmitEditing={(event) => {
+                            setShowFooter(true);
                             if (event.nativeEvent.text === "") {
                                 return;
                             }
-                            item.Name2 = event.nativeEvent.text;
+                            if (event.nativeEvent.text.length > 10) {
+                                item.Name2 = event.nativeEvent.text.slice(0,10);
+                            } else {
+                                item.Name2 = event.nativeEvent.text;
+                            }
                             changeName2(item.Name2);
                             changeNewName2("");
                             changeData("Name2", item.Name2);
@@ -225,23 +263,78 @@ export default function ScoringScreen({navigation, route}) {
                 {testing && <Button title="Log item" onPress={()=>{console.log("logging", item, name1, typeof item.Moves); setSelectedValues([])}}/>}
                 <Button title="Toggle Edit" onPress={()=>{setEditing(!editing)}}/>
                 <Button title="Delete item" onPress={()=>{
-                    // deleteItem();
-                    // navigation.pop();
+                    deleteItem();
+                    navigation.pop();
                 }}/>
                 <Button title="delete move" onPress={()=>{deleteMove()}}/>
                 <Button title="Finish Game" onPress={()=>{setCompleted()}}/>
-                <View>
-                    <Text style={{fontSize:20}}>{name1}'s Rolls: {getMoves(1)}</Text>
-                    <Text style={{fontSize:20}}>{name2}'s Rolls: {getMoves(2)}</Text>
-                </View>
+
+                <SafeAreaView style={{width:"100%", padding:5}}>
+                    <View style={{flexDirection:"row", alignItems:"center"}}>
+
+                        <View style={{flex:1, alignItems:"center", borderColor:"black", borderWidth: 2}}>
+                        <Text style={{fontSize:20}}>{name1}</Text>
+                        </View>
+                        <View style={{flex:1, alignItems: "center", borderColor:"black", borderWidth: 2}}>
+                        <Text style={{fontSize:20}}>{name2}</Text>
+                        </View>
+                    
+                    </View>
+
+                    {/* <View style={{flexDirection:"row"}}>
+
+                        <FlatList style={{flex:1}}
+                            data={getMovesForFlatList("name1")}
+                            renderItem={({item}) => 
+                                <View style={{alignItems:"center", borderColor:"black", borderWidth: 1}}>
+                                    <Text style={{fontSize:20, borderColor:"black"}}>{item[0]}, {item[1]}</Text>
+                                </View>
+                            }
+                        />
+
+                        <FlatList style={{flex:1}}
+                            data={getMovesForFlatList("name2")}
+                            renderItem={({item}) => 
+                                <View style={{alignItems:"center", borderColor:"black", borderWidth: 1}}>
+                                    <Text style={{fontSize:20,}}>{item[0]}, {item[1]}</Text>
+                                </View>
+                            }
+                        />
+
+                    </View> */}
+                    <View>
+
+                        <FlatList
+                            data = {getMovesForFlatList()}
+                            renderItem={({item}) => 
+                                <View style={{flexDirection:"row"}}>
+
+                                    <View style={{flex:1, alignItems:"center", borderWidth:1}}>
+                                        <Text style={{fontSize:20,}}>{item[0]}, {item[1]}</Text>
+                                    </View>
+                                    <View style={{flex:1, alignItems:"center", borderWidth:1}}>
+                                        <Text style={{fontSize:20,}}>{item[2]}, {item[3]}</Text>
+                                    </View>
+
+                                </View>
+                            }
+                        />
+
+                    </View>
+                </SafeAreaView>
 
             </View>
 
-            {!completed && <View style={styles.footer}>
+            {!completed && showFooter && <View style={styles.footer}>
                     <View style={styles.showSelectedVals}>
-                        <Text>
-                            {selectedValues.length === 0 ? "" : (selectedValues.length === 1 ? selectedValues[0] : selectedValues[0] + ", " + selectedValues[1])}
-                        </Text>
+                        <View>
+                            <Text style={{fontSize:20}}>Enter {moves.length%4<2?name1:name2}'s Roll:</Text>
+                        </View>
+                        <View style={{width: "20%"}}>
+                            <Text style={{fontSize:20}}>
+                                {selectedValues.length === 0 ? "" : (selectedValues.length === 1 ? selectedValues[0] : selectedValues[0] + ", " + selectedValues[1])}
+                            </Text>
+                        </View>
                     </View>
 
                     <View style={styles.buttonRows}>
@@ -270,9 +363,10 @@ const styles = StyleSheet.create({
         flex:1,
         backgroundColor:"white",
         borderRadius:10,
-        width:"30%",
-        justifyContent:"center",
+        width:"90%",
+        justifyContent:"space-evenly",
         alignItems:"center",
+        flexDirection: "row",
     },
 
     container: {

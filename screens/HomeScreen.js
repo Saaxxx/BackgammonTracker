@@ -23,7 +23,7 @@ export default function HomeScreen({navigation}) {
               tx.executeSql(
                 "CREATE TABLE IF NOT EXISTS "
                 + "Games "
-                + "(ID INTEGER PRIMARY KEY AUTOINCREMENT, Name1 TEXT, Name2 TEXT, Moves TEXT, Completed Text)"
+                + "(ID INTEGER PRIMARY KEY AUTOINCREMENT, Name1 TEXT, Name2 TEXT, Moves TEXT, Completed Text, Winner Text)"
            )
         })
     }
@@ -44,10 +44,10 @@ export default function HomeScreen({navigation}) {
 
     const setData = (name1, name2) => {
         try {
-            db.transaction(async (tx)=>{
+            db.transaction((tx)=>{
                 tx.executeSql(
-                    "INSERT INTO Games (Name1, Name2, Moves, Completed) VALUES (?,?,?,?)",
-                    [name1, name2, JSON.stringify([]), JSON.stringify(false)]
+                    "INSERT INTO Games (Name1, Name2, Moves, Completed, Winner) VALUES (?,?,?,?,?)",
+                    [name1, name2, JSON.stringify([]), JSON.stringify(false), ""]
                 );
             })
         } catch (error) {
@@ -88,15 +88,13 @@ export default function HomeScreen({navigation}) {
 
             <Button title = "display games" onPress={()=>{displayGames()}}/>
             <Button title="add game" onPress={() => {
-                setData("Saxon", "Craig")
+                setData("Sasha", "Jason")
                 getData()
             }}/>
 
-            <Text 
-                // onPress={()=>alert("This is the home screen")}
+            <Text
                 style={{fontSize:26, fontWeight: "bold"}}>Home Screen</Text>
                 <Button title ="Go to games" onPress={()=>{
-                        // db.closeSync();
                         navigation.navigate("Games")
                     }}/>
         </View>
