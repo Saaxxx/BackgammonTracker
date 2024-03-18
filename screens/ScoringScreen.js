@@ -141,7 +141,7 @@ export default function ScoringScreen({navigation, route}) {
     function setCompleted() {
         changeData("Completed", !completed);
         changeCompleted(!completed);
-        changeData("Winner", completed ? name1 : "");
+        changeData("Winner", completed ? "" : moves.length%4<2 ? name1:name2);
     }
 
     if (loading) {
@@ -149,23 +149,6 @@ export default function ScoringScreen({navigation, route}) {
             <View style={{alignItems: "center", justifyContent: "space-evenly"}}><Text>Loading...</Text></View>
         )
     }
-
-    // function getMovesForFlatList(name) {
-    //     let start = 0;
-    //     if (name === "name2") {
-    //         start = 2;
-    //     }
-    //     const list_moves = [];
-    //     for (let i = start; i < moves.length; i+=4) {
-    //         list_moves.push([moves[i],moves[i+1]]);
-    //     }
-
-    //     if (start === 2 && (moves.length / 2) % 2 == 1) {
-    //         list_moves.push(["N/A", "N/A"])
-    //     }
-
-    //     return list_moves.reverse();
-    // }
 
     function getMovesForFlatList() {
 
